@@ -137,6 +137,8 @@ module OffsitePayments #:nodoc:
         end
 
         def insert_fixed_fields
+          add_field('signed_field_names', 'access_key,profile_id,transaction_uuid,signed_field_names,unsigned_field_names,signed_date_time,locale,transaction_type,reference_number,amount,currency')
+          add_field('unsigned_field_names', '')
           add_field('locale', 'en')
           add_field('transaction_uuid', SecureRandom.hex(16))
           add_field('sendMerchantURLPost', 'true')
