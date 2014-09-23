@@ -3,8 +3,8 @@ module OffsitePayments #:nodoc:
     module CyberSourceSecureAcceptanceSop
       mattr_accessor :production_url, :test_url
 
-      self.production_url = 'https://orderpage.ic3.com/hop/ProcessOrder.do'
-      self.test_url = 'https://orderpagetest.ic3.com/hop/ProcessOrder.do'
+      self.production_url = 'https://secureacceptance.cybersource.com/silent/pay'
+      self.test_url = 'https://testsecureacceptance.cybersource.com/silent/pay'
 
       def self.service_url
         case OffsitePayments.mode
@@ -22,51 +22,52 @@ module OffsitePayments #:nodoc:
       end
 
       class Helper < OffsitePayments::Helper
-        mapping :account,  'merchantID'
-        mapping :credential2, 'orderPage_serialNumber'
-        mapping :transaction_type, 'orderPage_transactionType'
+        mapping :account,  'profile_id'
+        mapping :access_key, 'access_key'
+        mapping :transaction_type, 'transaction_type'
 
-        mapping :order,    'orderNumber'
+        mapping :order,    'reference_number'
         mapping :currency, 'currency'
         mapping :amount,   'amount'
-        mapping :ignore_avs, 'orderPage_ignoreAVS'
+        mapping :ignore_avs, 'ignore_avs'
         mapping :version, 'orderPage_version'
 
 
         mapping :customer,
-            :first_name => 'billTo_firstName',
-            :last_name  => 'billTo_lastName',
-            :email      => 'billTo_email',
-            :phone      => 'billTo_phoneNumber'
+            :first_name => 'bill_to_fore_name',
+            :last_name  => 'bill_to_surname',
+            :email      => 'bill_to_email',
+            :phone      => 'bill_to_phone'
 
         mapping :billing_address,
-            :city     => 'billTo_city',
-            :address1 => 'billTo_street1',
-            :address2 => 'billTo_street2',
-            :state    => 'billTo_state',
-            :country  => 'billTo_country'
+            :city     => 'bill_to_address_city',
+            :address1 => 'bill_to_address_line1',
+            :address2 => 'bill_to_address_line2',
+            :state    => 'bill_to_address_state',
+            :country  => 'bill_to_address_country'
 
         mapping :shipping_address,
-            :city     => 'shipTo_city',
-            :address1 => 'shipTo_street1',
-            :address2 => 'shipTo_street2',
-            :state    => 'shipTo_state',
-            :country  => 'shipTo_country'
+            :city     => 'ship_to_address_city',
+            :address1 => 'ship_to_address_line1',
+            :address2 => 'ship_to_address_line2',
+            :state    => 'ship_to_address_state',
+            :country  => 'ship_to_address_country'
 
-        mapping :description, 'comments'
-        mapping :tax, 'taxAmount'
+        mapping :description, 'payment_token_comments'
+        mapping :tax, 'tax_amount'
 
         mapping :credit_card,
-            :number               => 'card_accountNumber',
-            :expiry_month         => 'card_expirationMonth',
-            :expiry_year          => 'card_expirationYear',
-            :verification_value   => 'card_cvNumber',
-            :card_type            => 'card_cardType'
+            :number               => 'card_number',
+            :expiry_date          => 'card_expiry_date',
+            # :expiry_month         => 'card_expirationMonth',
+            # :expiry_year          => 'card_expirationYear',
+            :verification_value   => 'card_cvn',
+            :card_type            => 'card_type'
 
-        mapping :notify_url, 'orderPage_merchantURLPostAddress'
-        mapping :return_url, 'orderPage_receiptResponseURL'
-        mapping :cancel_return_url, 'orderPage_cancelResponseURL'
-        mapping :decline_url, 'orderPage_declineResponseURL'
+        mapping :notify_url, 'merchantPostURL'
+        mapping :return_url, 'override_custom_receipt_page'
+        mapping :cancel_return_url, 'cancelResponseURL'
+        mapping :decline_url, 'declineResponseURL'
 
         # These are the options that need to be used with payment_service_for with the
         # :cyber_source_sop service
@@ -86,21 +87,19 @@ module OffsitePayments #:nodoc:
         def initialize(order, account, options = {})
           # TODO: require! is not raising exception as expected
           # requires!(options, :credential2)
-          [:credential2, :amount, :currency, :shared_secret].each do | key |
+          [:amount, :currency, :access_key].each do |key|
             unless options.has_key?(key)
               raise ArgumentError.new("Missing required parameter: #{key}")
             end
           end
 
-          @shared_secret = options.delete(:shared_secret)
-
           super
 
           unless options[:transaction_type].present?
-            add_field('orderPage_transactionType', 'sale')
+            add_field('transaction_type', 'sale')
           end
           unless options[:ignore_avs].present?
-            add_field('orderPage_ignoreAVS', 'true')
+            add_field('ignore_avs', 'true')
           end
           unless options[:version].present?
             add_field('orderPage_version', '7')
@@ -108,7 +107,6 @@ module OffsitePayments #:nodoc:
 
           insert_fixed_fields()
           insert_timestamp_field()
-          insert_signature_public()
           insert_card_fields()
         end
 
@@ -120,33 +118,31 @@ module OffsitePayments #:nodoc:
           requires!(options, :line_items)
 
           valid_line_items = options[:line_items].select { |item| valid_line_item? item }
-          add_field('lineItemCount', valid_line_items.size)
+          add_field('line_item_count', valid_line_items.size)
 
           valid_line_items.each_with_index do |item, idx|
             tax_amount = (item[:tax_amount].present && item[:tax_amount] >= 0.0) ? item[:tax_amount] : '0.00'
             quantity = item[:quantity].present ? item[:quantity] : 1
 
-            add_field("item_#{idx}_productName", item[:name])
-            add_field("item_#{idx}_productSKU", item[:sku])
-            add_field("item_#{idx}_taxAmount", tax_amount)
-            add_field("item_#{idx}_unitPrice", item[:unit_price])
+            add_field("item_#{idx}_name", item[:name])
+            add_field("item_#{idx}_sku", item[:sku])
+            add_field("item_#{idx}_tax_amount", tax_amount)
+            add_field("item_#{idx}_unit_price", item[:unit_price])
             add_field("item_#{idx}_quantity", quantity)
           end
         end
 
         def insert_timestamp_field
-          add_field('orderPage_timestamp', get_microtime)
-        end
-
-        def insert_signature_public
-          add_field('orderPage_signaturePublic', sop_hash())
+          add_field('signed_date_time', Time.now.utc.strftime('%Y-%m-%dT%H:%M:%S%z').gsub(/\+\d{4}$/, 'Z'))
         end
 
         def insert_fixed_fields
-          add_field('orderPage_sendMerchantURLPost', 'true')
-          add_field('billTo_country', 'na')
-          add_field('billTo_city', 'na')
-          add_field('billTo_street1', 'na')
+          add_field('locale', 'en')
+          add_field('transaction_uuid', SecureRandom.hex(16))
+          add_field('sendMerchantURLPost', 'true')
+          add_field('bill_to_address_country', 'na')
+          add_field('bill_to_address_city', 'na')
+          add_field('bill_to_address_line1', 'na')
         end
 
         def insert_card_fields
@@ -156,26 +152,6 @@ module OffsitePayments #:nodoc:
 
           concat(result.respond_to?(:html_safe) ? result.html_safe : result)
         end
-
-        def get_microtime
-          t = Time.now
-          @time_stamp ||= sprintf("%d%03d", t.to_i, t.usec / 1000)
-        end
-
-        # private
-
-        def sop_hash
-          Base64.encode64(OpenSSL::HMAC.digest(OpenSSL::Digest::SHA1.new,
-              @shared_secret, sop_data)).chomp.gsub(/\n/,'')
-        end
-
-        def sop_data
-          (@fields['merchantID'] +
-              @fields['amount'] +
-              @fields['currency'] +
-              get_microtime() +
-              @fields['orderPage_transactionType'])
-        end
       end
 
       class Notification < OffsitePayments::Notification
@@ -184,24 +160,24 @@ module OffsitePayments #:nodoc:
         end
 
         def item_id
-          params['orderNumber']
+          params['req_reference_number']
         end
 
         def transaction_id
-          params['requestID']
+          params['transaction_id']
         end
 
         def currency
-          params['orderCurrency']
+          params['req_currency']
         end
 
         # When was this payment received by the client.
         def received_at
-          Time.strptime(params['ccAuthReply_authorizedDateTime'], '%Y-%m-%dT%H%M%SZ')
+          Time.strptime(params['auth_time'], '%Y-%m-%dT%H%M%SZ')
         end
 
         def payer_email
-          params['billTo_email']
+          params['req_bill_to_email']
         end
 
         def receiver_email
@@ -214,7 +190,7 @@ module OffsitePayments #:nodoc:
 
         # the money amount we received in X.2 decimal.
         def gross
-          params['orderAmount']
+          params['req_amount']
         end
 
         # Was this a test transaction?
@@ -241,10 +217,35 @@ module OffsitePayments #:nodoc:
         end
 
         def reason_code
-          params['reasonCode']
+          params['reason_code']
         end
 
         private
+
+        def secret_key
+          @options[:secret_key]
+        end
+
+        def valid?
+          signature = generate_signature
+          signature.strip.eql? params['signature'].strip
+        end
+
+        def generate_signature
+          sign(signed_field_data, secret_key)
+        end
+
+        def signed_field_data
+          signed_field_names = params['signed_field_names'].split ','
+
+          signed_field_names.map { |field| field + '=' + params[field].to_s }.join(',')
+        end
+
+        def sign(data)
+          mac = HMAC::SHA256.new secret_key
+          mac.update data
+          Base64.encode64(mac.digest).gsub "\n", ''
+        end
 
         @@response_codes = {
             :r100 => "Successful transaction",
@@ -288,7 +289,7 @@ module OffsitePayments #:nodoc:
         }
 
         # Take the posted data and move the relevant data into a hash
-        def parse(post)
+        def old_parse(post)
           @raw = post
           for line in post.split('&')
             key, value = *line.scan( %r{^(\w+)\=(.*)$} ).flatten
