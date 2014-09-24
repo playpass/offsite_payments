@@ -23,14 +23,14 @@ module OffsitePayments #:nodoc:
 
       class Helper < OffsitePayments::Helper
         mapping :account,  'profile_id'
-        mapping :access_key, 'access_key'
+        mapping :credential2, 'access_key'
         mapping :transaction_type, 'transaction_type'
 
         mapping :order,    'reference_number'
         mapping :currency, 'currency'
         mapping :amount,   'amount'
         mapping :ignore_avs, 'ignore_avs'
-        mapping :version, 'orderPage_version'
+        mapping :version, 'version'
 
 
         mapping :customer,
@@ -87,7 +87,7 @@ module OffsitePayments #:nodoc:
         def initialize(order, account, options = {})
           # TODO: require! is not raising exception as expected
           # requires!(options, :credential2)
-          [:amount, :currency, :access_key].each do |key|
+          [:amount, :currency, :credential2].each do |key|
             unless options.has_key?(key)
               raise ArgumentError.new("Missing required parameter: #{key}")
             end
