@@ -1,3 +1,6 @@
+require 'hmac-sha2'
+require 'base64'
+
 module OffsitePayments #:nodoc:
   module Integrations #:nodoc:
     module CyberSourceSecureAcceptanceSop
@@ -175,9 +178,12 @@ module OffsitePayments #:nodoc:
         end
 
         def sign(data)
-          mac = HMAC::SHA256.new @secret_key
-          mac.update data
-          Base64.encode64(mac.digest).gsub "\n", ''
+          # mac = HMAC::SHA256.new @secret_key
+          # mac.update data
+          # Base64.encode64(mac.digest).gsub "\n", ''
+
+          digest = OpenSSL::HMAC.digest('sha256', @secret_key, data)
+          Base64.encode64(digest).gsub "\n", ''
         end
       end
 
