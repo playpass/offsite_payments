@@ -143,9 +143,10 @@ module OffsitePayments #:nodoc:
         end
 
         def insert_fixed_fields
-          add_field('signed_field_names', 'access_key,profile_id,transaction_uuid,signed_field_names,unsigned_field_names,signed_date_time,locale,transaction_type,reference_number,amount,currency')
-          add_field('unsigned_field_names', 'version,locale,sendMerchantURLPost,bill_to_address_country,bill_to_address_city,bill_to_address_line1')
-          add_field('locale', 'en')
+          add_field('signed_field_names', 'payment_method,access_key,profile_id,transaction_uuid,signed_field_names,unsigned_field_names,signed_date_time,locale,transaction_type,reference_number,amount,currency')
+          add_field('unsigned_field_names', 'card_type,card_number,card_expiry_date')
+          add_field('payment_method', 'card')
+          add_field('locale', 'en-us')
           add_field('transaction_uuid', SecureRandom.hex(16))
           add_field('sendMerchantURLPost', 'true')
           add_field('bill_to_address_country', 'na')
