@@ -169,9 +169,9 @@ module OffsitePayments #:nodoc:
         end
 
         def signed_field_data
-          signed_field_names = params['signed_field_names'].split ','
+          signed_field_names = @fields['signed_field_names'].split ','
 
-          signed_field_names.map { |field| field + '=' + params[field].to_s }.join(',')
+          signed_field_names.map { |field| field + '=' + @fields[field].to_s }.join(',')
         end
 
         def sign(data)
