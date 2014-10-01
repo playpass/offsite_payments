@@ -87,11 +87,13 @@ module OffsitePayments #:nodoc:
         def initialize(order, account, options = {})
           # TODO: require! is not raising exception as expected
           # requires!(options, :credential2)
-          [:amount, :currency, :credential2].each do |key|
+          [:amount, :currency, :credential2, :secret_key].each do |key|
             unless options.has_key?(key)
               raise ArgumentError.new("Missing required parameter: #{key}")
             end
           end
+
+          @secret_key = options.delete(:secret_key)
 
           super
 
@@ -107,6 +109,7 @@ module OffsitePayments #:nodoc:
 
           insert_fixed_fields()
           insert_timestamp_field()
+          insert_signature_public()
           insert_card_fields()
         end
 
@@ -138,7 +141,7 @@ module OffsitePayments #:nodoc:
 
         def insert_fixed_fields
           add_field('signed_field_names', 'access_key,profile_id,transaction_uuid,signed_field_names,unsigned_field_names,signed_date_time,locale,transaction_type,reference_number,amount,currency')
-          add_field('unsigned_field_names', '')
+          add_field('unsigned_field_names', 'version,locale,sendMerchantURLPost,bill_to_address_country,bill_to_address_city,bill_to_address_line1')
           add_field('locale', 'en')
           add_field('transaction_uuid', SecureRandom.hex(16))
           add_field('sendMerchantURLPost', 'true')
@@ -149,10 +152,32 @@ module OffsitePayments #:nodoc:
 
         def insert_card_fields
           result = []
-          result << "First Name: <input autocomplete=\"off\" type=\"text\" name=\"billTo_firstName\" />\n"
+          result << "First Name: <input autocomplete=\"off\" type=\"text\" name=\"bill_to_forename\" />\n"
           result= result.join("\n")
 
           concat(result.respond_to?(:html_safe) ? result.html_safe : result)
+        end
+
+        def insert_signature_public
+          add_field('signature', generate_signature)
+        end
+
+        private
+
+        def generate_signature
+          sign(signed_field_data)
+        end
+
+        def signed_field_data
+          signed_field_names = params['signed_field_names'].split ','
+
+          signed_field_names.map { |field| field + '=' + params[field].to_s }.join(',')
+        end
+
+        def sign(data)
+          mac = HMAC::SHA256.new @secret_key
+          mac.update data
+          Base64.encode64(mac.digest).gsub "\n", ''
         end
       end
 
