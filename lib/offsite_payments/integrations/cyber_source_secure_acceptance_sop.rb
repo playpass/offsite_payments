@@ -37,7 +37,7 @@ module OffsitePayments #:nodoc:
 
 
         mapping :customer,
-            :first_name => 'bill_to_fore_name',
+            :first_name => 'bill_to_forename',
             :last_name  => 'bill_to_surname',
             :email      => 'bill_to_email',
             :phone      => 'bill_to_phone'
@@ -62,22 +62,17 @@ module OffsitePayments #:nodoc:
         mapping :credit_card,
             :number               => 'card_number',
             :expiry_date          => 'card_expiry_date',
-            # :expiry_month         => 'card_expirationMonth',
-            # :expiry_year          => 'card_expirationYear',
             :verification_value   => 'card_cvn',
             :card_type            => 'card_type'
 
-        mapping :notify_url, 'merchantPostURL'
-        mapping :return_url, 'override_custom_receipt_page'
-        mapping :cancel_return_url, 'cancelResponseURL'
-        mapping :decline_url, 'declineResponseURL'
+        mapping :notify_url, 'override_custom_receipt_page'
 
         # These are the options that need to be used with payment_service_for with the
-        # :cyber_source_sop service
+        # :cyber_source_secure_acceptance_sop service
         #
-        # * :merchant_id => 'Your CyberSource SOP Merchant Id'
-        # * :shared_secret => 'Your CyberSource SOP Shared Secret'
-        # * :credential2 => 'Your CyberSource SOP Serial Number'
+        # * :profile_id => 'Your CyberSource Secure Acceptance Profile ID (UUID, caps, with dashes)'
+        # * :access_key => 'Your CyberSource Secure Acceptance Profile security Access Key'
+        # * :credential2 => 'Your CyberSource Secure Acceptance Profile security Secret Key'
         #
         # The following are optional data that you can specify but will be set to sensible
         # defaults if they're not specified
@@ -107,7 +102,7 @@ module OffsitePayments #:nodoc:
             add_field('ignore_avs', 'true')
           end
           unless options[:version].present?
-            add_field('orderPage_version', '7')
+            add_field('version', '1')
           end
 
           insert_fixed_fields()
@@ -143,12 +138,11 @@ module OffsitePayments #:nodoc:
         end
 
         def insert_fixed_fields
-          add_field('signed_field_names', 'payment_method,access_key,profile_id,transaction_uuid,signed_field_names,unsigned_field_names,signed_date_time,locale,transaction_type,reference_number,amount,currency')
-          add_field('unsigned_field_names', 'card_type,card_number,card_cvn,card_expiry_date')
+          add_field('signed_field_names', 'access_key,amount,bill_to_email,currency,locale,payment_method,profile_id,reference_number,signed_date_time,signed_field_names,transaction_type,transaction_uuid,unsigned_field_names')
+          add_field('unsigned_field_names', 'bill_to_address_city,bill_to_address_country,bill_to_address_line1,bill_to_forename,bill_to_surname,card_expiry_date,card_number,card_type,override_custom_receipt_page')
           add_field('payment_method', 'card')
-          add_field('locale', 'en-us')
+          add_field('locale', 'en')
           add_field('transaction_uuid', SecureRandom.hex(16))
-          add_field('sendMerchantURLPost', 'true')
           add_field('bill_to_address_country', 'na')
           add_field('bill_to_address_city', 'na')
           add_field('bill_to_address_line1', 'na')
@@ -179,10 +173,6 @@ module OffsitePayments #:nodoc:
         end
 
         def sign(data)
-          # mac = HMAC::SHA256.new @secret_key
-          # mac.update data
-          # Base64.encode64(mac.digest).gsub "\n", ''
-
           digest = OpenSSL::HMAC.digest('sha256', @secret_key, data)
           Base64.encode64(digest).gsub "\n", ''
         end
@@ -207,7 +197,7 @@ module OffsitePayments #:nodoc:
 
         # When was this payment received by the client.
         def received_at
-          Time.strptime(params['auth_time'], '%Y-%m-%dT%H%M%SZ')
+          Time.strptime(params['signed_date_time'], '%Y-%m-%dT%H%M%SZ')
         end
 
         def payer_email
@@ -229,7 +219,7 @@ module OffsitePayments #:nodoc:
 
         # Was this a test transaction?
         def test?
-          params['orderPage_environment'] == 'TEST'
+          OffsitePayments.mode == :test
         end
 
         def status
