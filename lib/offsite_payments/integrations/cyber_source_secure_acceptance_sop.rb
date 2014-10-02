@@ -98,9 +98,6 @@ module OffsitePayments #:nodoc:
           unless options[:transaction_type].present?
             add_field('transaction_type', 'sale')
           end
-          unless options[:ignore_avs].present?
-            add_field('ignore_avs', 'true')
-          end
           unless options[:version].present?
             add_field('version', '1')
           end
