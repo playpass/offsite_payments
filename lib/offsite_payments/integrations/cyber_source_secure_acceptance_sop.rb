@@ -143,9 +143,6 @@ module OffsitePayments #:nodoc:
           add_field('payment_method', 'card')
           add_field('locale', 'en')
           add_field('transaction_uuid', SecureRandom.hex(16))
-          add_field('bill_to_address_country', 'na')
-          add_field('bill_to_address_city', 'na')
-          add_field('bill_to_address_line1', 'na')
         end
 
         def insert_card_fields
