@@ -92,10 +92,7 @@ module OffsitePayments #:nodoc:
           end
 
           @secret_key = options.delete(:secret_key)
-
-          if options[:tax].present?
-            add_field('tax_amount', options.delete(:tax).to_s)
-          end
+          # @tax = options.delete(:tax)
 
           super
 
@@ -106,6 +103,10 @@ module OffsitePayments #:nodoc:
           unless options[:version].present?
             add_field('version', '1')
           end
+
+          # if options[:tax].present?
+          #   add_field('tax_amount', options.delete(:tax).to_s)
+          # end
 
           insert_fixed_fields()
           insert_timestamp_field()
