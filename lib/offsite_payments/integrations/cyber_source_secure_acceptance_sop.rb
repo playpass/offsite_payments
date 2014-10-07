@@ -98,8 +98,13 @@ module OffsitePayments #:nodoc:
           unless options[:transaction_type].present?
             add_field('transaction_type', 'sale')
           end
+
           unless options[:version].present?
             add_field('version', '1')
+          end
+
+          if options[:tax].present?
+            add_field('tax_amount', options.delete(:tax).to_s)
           end
 
           insert_fixed_fields()
