@@ -92,7 +92,6 @@ module OffsitePayments #:nodoc:
           end
 
           @secret_key = options.delete(:secret_key)
-          @tax = options.delete(:tax)
 
           super
 
@@ -102,10 +101,6 @@ module OffsitePayments #:nodoc:
 
           unless options[:version].present?
             add_field('version', '1')
-          end
-
-          if @tax.present?
-            add_field('tax_amount', @tax.to_s)
           end
 
           insert_fixed_fields()
@@ -141,7 +136,7 @@ module OffsitePayments #:nodoc:
         end
 
         def insert_fixed_fields
-          add_field('signed_field_names', 'access_key,amount,bill_to_email,currency,locale,payment_method,profile_id,reference_number,signed_date_time,signed_field_names,tax_amount,transaction_type,transaction_uuid,unsigned_field_names')
+          add_field('signed_field_names', 'access_key,amount,bill_to_email,currency,locale,payment_method,profile_id,reference_number,signed_date_time,signed_field_names,transaction_type,transaction_uuid,unsigned_field_names')
           add_field('unsigned_field_names', 'bill_to_address_city,bill_to_address_country,bill_to_address_line1,bill_to_forename,bill_to_surname,card_expiry_date,card_number,card_type,override_custom_receipt_page')
           add_field('payment_method', 'card')
           add_field('locale', 'en')
