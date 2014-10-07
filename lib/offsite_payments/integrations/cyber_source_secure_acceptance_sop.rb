@@ -92,6 +92,7 @@ module OffsitePayments #:nodoc:
           end
 
           @secret_key = options.delete(:secret_key)
+          @bill_to_email = options.delete(:bill_to_email)
 
           super
 
@@ -101,6 +102,10 @@ module OffsitePayments #:nodoc:
 
           unless options[:version].present?
             add_field('version', '1')
+          end
+
+          if @bill_to_email.present?
+            add_field('bill_to_email', @bill_to_email.to_s)
           end
 
           insert_fixed_fields()
@@ -155,10 +160,16 @@ module OffsitePayments #:nodoc:
           add_field('signature', generate_signature)
         end
 
+        def data_to_sign
+          @data_to_sign
+        end
+
         private
 
         def generate_signature
-          sign(signed_field_data)
+          @data_to_sign = signed_field_data
+
+          sign(@data_to_sign)
         end
 
         def signed_field_data
