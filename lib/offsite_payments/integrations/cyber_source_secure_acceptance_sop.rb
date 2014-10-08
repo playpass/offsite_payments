@@ -92,21 +92,8 @@ module OffsitePayments #:nodoc:
           end
 
           @secret_key = options.delete(:secret_key)
-          @bill_to_email = options.delete(:bill_to_email)
 
           super
-
-          unless options[:transaction_type].present?
-            add_field('transaction_type', 'sale')
-          end
-
-          unless options[:version].present?
-            add_field('version', '1')
-          end
-
-          if @bill_to_email.present?
-            add_field('bill_to_email', @bill_to_email.to_s)
-          end
 
           insert_fixed_fields()
           insert_timestamp_field()
@@ -141,11 +128,19 @@ module OffsitePayments #:nodoc:
         end
 
         def insert_fixed_fields
-          add_field('signed_field_names', 'access_key,amount,bill_to_email,currency,locale,payment_method,profile_id,reference_number,signed_date_time,signed_field_names,transaction_type,transaction_uuid,unsigned_field_names')
-          add_field('unsigned_field_names', 'bill_to_address_city,bill_to_address_country,bill_to_address_line1,bill_to_forename,bill_to_surname,card_expiry_date,card_number,card_type,override_custom_receipt_page')
+          add_field('signed_field_names', 'access_key,amount,currency,locale,payment_method,profile_id,reference_number,signed_date_time,signed_field_names,transaction_type,transaction_uuid,unsigned_field_names,override_custom_receipt_page')
+          add_field('unsigned_field_names', 'bill_to_address_city,bill_to_address_country,bill_to_address_line1,bill_to_forename,bill_to_surname,bill_to_email,card_expiry_date,card_number,card_type')
           add_field('payment_method', 'card')
           add_field('locale', 'en')
           add_field('transaction_uuid', SecureRandom.hex(16))
+          add_field('transaction_type', 'sale')
+          add_field('version', '1')
+
+          %w/city line1/.each do |billing_field_suffix|
+            add_field("bill_to_address_#{billing_field_suffix}", 'na')
+          end
+
+          add_field('bill_to_address_country', 'NA')
         end
 
         def insert_card_fields
