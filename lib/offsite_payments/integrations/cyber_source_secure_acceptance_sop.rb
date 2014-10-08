@@ -245,19 +245,19 @@ module OffsitePayments #:nodoc:
           params['reason_code']
         end
 
+        def valid?
+          signature = generate_signature
+          signature.strip.eql? params['signature'].strip
+        end
+
         private
 
         def secret_key
           @options[:secret_key]
         end
 
-        def valid?
-          signature = generate_signature
-          signature.strip.eql? params['signature'].strip
-        end
-
         def generate_signature
-          sign(signed_field_data, secret_key)
+          sign(signed_field_data)
         end
 
         def signed_field_data
@@ -267,9 +267,8 @@ module OffsitePayments #:nodoc:
         end
 
         def sign(data)
-          mac = HMAC::SHA256.new secret_key
-          mac.update data
-          Base64.encode64(mac.digest).gsub "\n", ''
+          digest = OpenSSL::HMAC.digest('sha256', secret_key, data)
+          Base64.encode64(digest).gsub "\n", ''
         end
 
         @@response_codes = {
