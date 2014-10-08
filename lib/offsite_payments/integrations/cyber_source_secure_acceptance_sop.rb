@@ -92,6 +92,7 @@ module OffsitePayments #:nodoc:
           end
 
           @secret_key = options.delete(:secret_key)
+          @customerIpAddress = options.delete(:customer_ip_address)
 
           super
 
@@ -128,13 +129,14 @@ module OffsitePayments #:nodoc:
         end
 
         def insert_fixed_fields
-          add_field('signed_field_names', 'access_key,amount,currency,locale,payment_method,profile_id,reference_number,signed_date_time,signed_field_names,transaction_type,transaction_uuid,unsigned_field_names,override_custom_receipt_page')
+          add_field('signed_field_names', 'access_key,amount,currency,customer_ip_address,locale,override_custom_receipt_page,payment_method,profile_id,reference_number,signed_date_time,signed_field_names,transaction_type,transaction_uuid,unsigned_field_names')
           add_field('unsigned_field_names', 'bill_to_address_city,bill_to_address_country,bill_to_address_line1,bill_to_forename,bill_to_surname,bill_to_email,card_expiry_date,card_number,card_type')
           add_field('payment_method', 'card')
           add_field('locale', 'en')
           add_field('transaction_uuid', SecureRandom.hex(16))
           add_field('transaction_type', 'sale')
           add_field('version', '1')
+          add_field('customer_ip_address', @customerIpAddress)
 
           %w/city line1/.each do |billing_field_suffix|
             add_field("bill_to_address_#{billing_field_suffix}", 'na')
@@ -272,44 +274,46 @@ module OffsitePayments #:nodoc:
         end
 
         @@response_codes = {
-            :r100 => "Successful transaction",
-            :r101 => "Request is missing one or more required fields" ,
-            :r102 => "One or more fields contains invalid data",
-            :r150 => "General failure",
-            :r151 => "The request was received but a server time-out occurred",
-            :r152 => "The request was received, but a service timed out",
-            :r200 => "The authorization request was approved by the issuing bank but declined by CyberSource because it did not pass the AVS check",
-            :r201 => "The issuing bank has questions about the request",
-            :r202 => "Expired card",
-            :r203 => "General decline of the card",
-            :r204 => "Insufficient funds in the account",
-            :r205 => "Stolen or lost card",
-            :r207 => "Issuing bank unavailable",
-            :r208 => "Inactive card or card not authorized for card-not-present transactions",
-            :r209 => "American Express Card Identifiction Digits (CID) did not match",
-            :r210 => "The card has reached the credit limit",
-            :r211 => "Invalid card verification number",
-            :r221 => "The customer matched an entry on the processor's negative file",
-            :r230 => "The authorization request was approved by the issuing bank but declined by CyberSource because it did not pass the card verification check",
-            :r231 => "Invalid account number",
-            :r232 => "The card type is not accepted by the payment processor",
-            :r233 => "General decline by the processor",
-            :r234 => "A problem exists with your CyberSource merchant configuration",
-            :r235 => "The requested amount exceeds the originally authorized amount",
-            :r236 => "Processor failure",
-            :r237 => "The authorization has already been reversed",
-            :r238 => "The authorization has already been captured",
-            :r239 => "The requested transaction amount must match the previous transaction amount",
-            :r240 => "The card type sent is invalid or does not correlate with the credit card number",
-            :r241 => "The request ID is invalid",
-            :r242 => "You requested a capture, but there is no corresponding, unused authorization record.",
-            :r243 => "The transaction has already been settled or reversed",
-            :r244 => "The bank account number failed the validation check",
-            :r246 => "The capture or credit is not voidable because the capture or credit information has already been submitted to your processor",
-            :r247 => "You requested a credit for a capture that was previously voided",
-            :r250 => "The request was received, but a time-out occurred with the payment processor",
-            :r254 => "Your CyberSource account is prohibited from processing stand-alone refunds",
-            :r255 => "Your CyberSource account is not configured to process the service in the country you specified"
+            :r100 => 'Successful transaction',
+            :r101 => 'Request is missing one or more required fields' ,
+            :r102 => 'One or more fields contains invalid data',
+            :r150 => 'General failure',
+            :r151 => 'The request was received but a server time-out occurred',
+            :r152 => 'The request was received, but a service timed out',
+            :r200 => 'The authorization request was approved by the issuing bank but declined by CyberSource because it did not pass the AVS check',
+            :r201 => 'The issuing bank has questions about the request',
+            :r202 => 'Expired card',
+            :r203 => 'General decline of the card',
+            :r204 => 'Insufficient funds in the account',
+            :r205 => 'Stolen or lost card',
+            :r207 => 'Issuing bank unavailable',
+            :r208 => 'Inactive card or card not authorized for card-not-present transactions',
+            :r209 => 'American Express Card Identifiction Digits (CID) did not match',
+            :r210 => 'The card has reached the credit limit',
+            :r211 => 'Invalid card verification number',
+            :r221 => 'The customer matched an entry on the processor\'s negative file',
+            :r230 => 'The authorization request was approved by the issuing bank but declined by CyberSource because it did not pass the card verification check',
+            :r231 => 'Invalid account number',
+            :r232 => 'The card type is not accepted by the payment processor',
+            :r233 => 'General decline by the processor',
+            :r234 => 'A problem exists with your CyberSource merchant configuration',
+            :r235 => 'The requested amount exceeds the originally authorized amount',
+            :r236 => 'Processor failure',
+            :r237 => 'The authorization has already been reversed',
+            :r238 => 'The authorization has already been captured',
+            :r239 => 'The requested transaction amount must match the previous transaction amount',
+            :r240 => 'The card type sent is invalid or does not correlate with the credit card number',
+            :r241 => 'The request ID is invalid',
+            :r242 => 'You requested a capture, but there is no corresponding, unused authorization record.',
+            :r243 => 'The transaction has already been settled or reversed',
+            :r244 => 'The bank account number failed the validation check',
+            :r246 => 'The capture or credit is not voidable because the capture or credit information has already been submitted to your processor',
+            :r247 => 'You requested a credit for a capture that was previously voided',
+            :r250 => 'The request was received, but a time-out occurred with the payment processor',
+            :r254 => 'Your CyberSource account is prohibited from processing stand-alone refunds',
+            :r255 => 'Your CyberSource account is not configured to process the service in the country you specified',
+            :r475 => 'The customer is enrolled in Payer Authentication. Authenticate the cardholder before continuing with the transaction.',
+            :r476 => 'The customer cannot be authenticated.'
         }
 
         # Take the posted data and move the relevant data into a hash
