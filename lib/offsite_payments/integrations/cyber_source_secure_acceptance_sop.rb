@@ -65,7 +65,8 @@ module OffsitePayments #:nodoc:
             :verification_value   => 'card_cvn',
             :card_type            => 'card_type'
 
-        mapping :notify_url, 'override_custom_receipt_page'
+        mapping :notify_url, 'override_merchant_post_url'
+        mapping :return_url, 'override_custom_receipt_page'
 
         # These are the options that need to be used with payment_service_for with the
         # :cyber_source_secure_acceptance_sop service
@@ -129,7 +130,8 @@ module OffsitePayments #:nodoc:
         end
 
         def insert_fixed_fields
-          add_field('signed_field_names', 'access_key,amount,currency,customer_ip_address,locale,override_custom_receipt_page,payment_method,profile_id,reference_number,signed_date_time,signed_field_names,transaction_type,transaction_uuid,unsigned_field_names')
+          # displayCCNumber = 3
+          add_field('signed_field_names', 'access_key,amount,currency,customer_ip_address,locale,override_custom_receipt_page,override_merchant_post_url,payment_method,profile_id,reference_number,signed_date_time,signed_field_names,transaction_type,transaction_uuid,unsigned_field_names')
           add_field('unsigned_field_names', 'bill_to_address_city,bill_to_address_country,bill_to_address_line1,bill_to_forename,bill_to_surname,bill_to_email,card_expiry_date,card_number,card_type')
           add_field('payment_method', 'card')
           add_field('locale', 'en')
