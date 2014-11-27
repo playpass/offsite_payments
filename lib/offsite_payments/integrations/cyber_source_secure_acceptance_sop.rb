@@ -1,4 +1,3 @@
-require 'hmac-sha2'
 require 'base64'
 
 module OffsitePayments #:nodoc:
