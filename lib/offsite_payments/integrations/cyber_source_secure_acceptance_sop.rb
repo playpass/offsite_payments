@@ -286,7 +286,7 @@ module OffsitePayments #:nodoc:
             :r100 => 'Successful transaction',
             :r101 => 'Request is missing one or more required fields' ,
             :r102 => 'One or more fields contains invalid data',
-            :r104 => 'Please wait 15 minutes and try again',
+            :r104 => 'Please refresh the page and try again',
             :r150 => 'General failure',
             :r151 => 'The request was received but a server time-out occurred',
             :r152 => 'The request was received, but a service timed out',
