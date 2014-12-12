@@ -241,7 +241,15 @@ module OffsitePayments #:nodoc:
         end
 
         def reason
-          @@response_codes[('r' + reason_code).to_sym]
+          if reason_code.present? && @@response_codes[('r' + reason_code).to_sym].present?
+            return @@response_codes[('r' + reason_code).to_sym]
+          else
+            return nil
+          end
+        end
+
+        def message
+          params['message'] || nil
         end
 
         def reason_code
