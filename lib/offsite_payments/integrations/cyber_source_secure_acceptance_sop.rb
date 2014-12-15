@@ -241,7 +241,19 @@ module OffsitePayments #:nodoc:
         end
 
         def reason
-          @@response_codes[('r' + reason_code).to_sym]
+          if reason_code.present?
+            if @@response_codes.has_key? ('r' + reason_code).to_sym
+              return @@response_codes[('r' + reason_code).to_sym]
+            else
+              return "Unknown error ##{reason_code}"
+            end
+          else
+            return nil
+          end
+        end
+
+        def message
+          params['message'] || nil
         end
 
         def reason_code
@@ -278,6 +290,7 @@ module OffsitePayments #:nodoc:
             :r100 => 'Successful transaction',
             :r101 => 'Request is missing one or more required fields' ,
             :r102 => 'One or more fields contains invalid data',
+            :r104 => 'Please refresh the page and try again',
             :r150 => 'General failure',
             :r151 => 'The request was received but a server time-out occurred',
             :r152 => 'The request was received, but a service timed out',
