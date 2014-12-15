@@ -243,7 +243,7 @@ module OffsitePayments #:nodoc:
         def reason
           if reason_code.present?
             if @@response_codes.has_key? ('r' + reason_code).to_sym
-              return reason details from @@response_codes
+              return @@response_codes[('r' + reason_code).to_sym]
             else
               return "Unknown error ##{reason_code}"
             end
