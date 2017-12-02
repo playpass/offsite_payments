@@ -84,7 +84,7 @@ module OffsitePayments
             else
               case transaction_status.downcase
               when 'success' then 'Completed'
-              when 'canceled' then 'Cancelled'
+              when 'canceled' then 'Failed'
               end
             end
           else
@@ -96,8 +96,8 @@ module OffsitePayments
           order_id.to_s == invoice.to_s
         end
 
-        def amount_ok?( order_amount )
-          BigDecimal.new( amount ) == order_amount
+        def amount_ok?(order_amount)
+          amount == Money.from_amount(order_amount, currency)
         end
 
         def item_id
@@ -120,7 +120,7 @@ module OffsitePayments
         end
 
         def amount
-          gross
+          Money.from_amount(BigDecimal.new(gross), currency)
         end
 
         def transaction_id
@@ -182,7 +182,7 @@ module OffsitePayments
         end
 
         def checksum_ok?
-          fields = [invoice, transaction_status, amount.to_s, transaction_id, issuerrefno, authidcode, customer_first_name, customer_last_name, pgrespcode, customer_address[:zip]].join
+          fields = [invoice, transaction_status, sprintf('%.2f', amount), transaction_id, issuerrefno, authidcode, customer_first_name, customer_last_name, pgrespcode, customer_address[:zip]].join
 
           unless Citrus.checksum(@secret_key, fields ) == checksum
             @message = 'checksum mismatch...'
@@ -219,7 +219,7 @@ module OffsitePayments
         end
 
         def cancelled?
-          @notification.status == 'Cancelled'
+          @notification.status == 'Failed'
         end
       end
     end

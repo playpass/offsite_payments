@@ -13,7 +13,7 @@ class GestpayNotificationTest < Test::Unit::TestCase
     assert_equal "1000", notification.item_id
     assert_equal "1234.56", notification.gross
     assert_equal "EUR", notification.currency
-    assert_equal Money.new(123456, 'EUR'), notification.amount
+    assert_equal Money.from_amount(1234.56, 'EUR'), notification.amount
   end
 
   def test_failed_notification
@@ -47,6 +47,16 @@ class GestpayNotificationTest < Test::Unit::TestCase
     assert !notification.test?
     assert_equal "Failed", notification.status
     assert_equal '1000', notification.item_id
+  end
+
+  def test_error_notification
+    Gestpay::Notification.any_instance.expects(:ssl_get).returns(unencrypted_string)
+    Gestpay::Notification.any_instance.expects(:parse_response).raises(OffsitePayments::Integrations::Gestpay::Common::GestpayEncryptionResponseError.new)
+
+    assert_nothing_raised do
+      notification = Gestpay::Notification.new(raw_query_string)
+      refute notification.complete?
+    end
   end
 
   private

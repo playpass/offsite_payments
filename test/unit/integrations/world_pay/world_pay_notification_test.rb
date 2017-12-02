@@ -19,7 +19,7 @@ class WorldPayNotificationTest < Test::Unit::TestCase
   end
 
   def test_compositions
-    assert_equal Money.new(500, 'GBP'), @world_pay.amount
+    assert_equal Money.from_amount(5.00, 'GBP'), @world_pay.amount
   end
 
   def test_extra_accessors
@@ -65,6 +65,14 @@ class WorldPayNotificationTest < Test::Unit::TestCase
     assert_equal 'Custom Value 3', notification.custom_params[:custom_3]
   end
 
+  def test_valid_sender
+    OffsitePayments.mode = :production
+    assert @world_pay.valid_sender?('195.35.90.0')
+    assert @world_pay.valid_sender?('195.35.90.11')
+    assert @world_pay.valid_sender?('195.35.91.255')
+    refute @world_pay.valid_sender?('195.35.89.255')
+    refute @world_pay.valid_sender?('195.35.92.0')
+  end
 
   private
 

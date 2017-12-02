@@ -42,7 +42,7 @@ module OffsitePayments #:nodoc:
           :address1 => 'address1',
           :address2 => 'address2',
           :state => 'state',
-          :zip => 'zip',
+          :zip => 'zipcode',
           :country => 'country'
 
         # Which tab you want to be open default on PayU
@@ -84,8 +84,9 @@ module OffsitePayments #:nodoc:
         end
 
         def sanitize_fields
-          ['address1', 'address2', 'city', 'state', 'country', 'productinfo', 'email', 'phone'].each do |field|
-            @fields[field].gsub!(/[^a-zA-Z0-9\-_@\/\s.]/, '') if @fields[field]
+          @fields['phone'] = @fields['phone'].gsub(/[^0-9]/, '') if @fields['phone']
+          ['address1', 'address2', 'city', 'state', 'country', 'productinfo', 'email'].each do |field|
+            @fields[field] = @fields[field].gsub(/[^a-zA-Z0-9\-_@\/\s.]/, '') if @fields[field]
           end
         end
 
@@ -116,7 +117,8 @@ module OffsitePayments #:nodoc:
 
         # Order amount should be equal to gross - discount
         def amount_ok?( order_amount, order_discount = BigDecimal.new( '0.0' ) )
-          BigDecimal.new( gross ) == order_amount && BigDecimal.new( discount.to_s ) == order_discount
+          parsed_discount = discount.nil? ? 0.to_d : discount.to_d
+          BigDecimal.new( original_gross ) == order_amount && parsed_discount == order_discount
         end
 
         # Status of transaction return from the PayU. List of possible values:
@@ -162,8 +164,12 @@ module OffsitePayments #:nodoc:
         end
 
         # original amount send by merchant
-        def gross
+        def original_gross
           params['amount']
+        end
+
+        def gross
+          parse_and_round_gross_amount(params['amount'])
         end
 
         # This is discount given to user - based on promotion set by merchants.
@@ -225,13 +231,19 @@ module OffsitePayments #:nodoc:
         end
 
         def checksum_ok?
-          checksum_fields = [transaction_status, *user_defined.reverse, customer_email, customer_first_name, product_info, gross, invoice]
+          checksum_fields = [transaction_status, *user_defined.reverse, customer_email, customer_first_name, product_info, original_gross, invoice]
 
           unless Digest::SHA512.hexdigest([@secret_key, *checksum_fields, @merchant_id].join("|")) == checksum
             @message = 'Return checksum not matching the data provided'
             return false
           end
           true
+        end
+
+        private
+        def parse_and_round_gross_amount(amount)
+          rounded_amount = (amount.to_f * 100.0).round
+          sprintf("%.2f", rounded_amount / 100.00)
         end
       end
 

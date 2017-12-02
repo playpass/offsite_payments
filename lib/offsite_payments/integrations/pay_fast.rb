@@ -172,7 +172,7 @@ module OffsitePayments #:nodoc:
       #     end
       #   end
       class Notification < OffsitePayments::Notification
-        include ActiveMerchant::PostsData
+        include ActiveUtils::PostsData
         include Common
 
         # Was the transaction complete?
@@ -212,7 +212,7 @@ module OffsitePayments #:nodoc:
 
         # The net amount credited to the receiver's account.
         def amount
-          params['amount_net']
+          Money.from_amount(BigDecimal.new(params['amount_net']), currency)
         end
 
         # The name of the item being charged for.
@@ -226,7 +226,7 @@ module OffsitePayments #:nodoc:
         end
 
         def currency
-          nil
+          'ZAR'
         end
 
         # Generated hash depends on params order so use OrderedHash instead of Hash

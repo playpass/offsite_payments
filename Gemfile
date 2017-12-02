@@ -1,6 +1,10 @@
 source 'https://rubygems.org'
 gemspec
 
-gem 'rails', '~> 3.2.0'
+gem 'jruby-openssl', :platforms => :jruby
 
-eval File.read(File.expand_path("../Gemfile_common", __FILE__))
+group :remote_test do
+  gem 'mechanize'
+  gem 'launchy'
+  gem 'mongrel', '1.2.0.pre2', :platforms => :ruby
+end
